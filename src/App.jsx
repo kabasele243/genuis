@@ -13,36 +13,8 @@ import './charts/ChartjsConfig';
 import Home from './pages/Home';
 import Analytics from './pages/Analytics';
 import Fintech from './pages/Fintech';
-import Customers from './pages/ecommerce/Customers';
-import Orders from './pages/ecommerce/Orders';
-import Invoices from './pages/ecommerce/Invoices';
-import Shop from './pages/ecommerce/Shop';
-import Shop2 from './pages/ecommerce/Shop2';
-import Product from './pages/ecommerce/Product';
-import Cart from './pages/ecommerce/Cart';
-import Cart2 from './pages/ecommerce/Cart2';
-import Cart3 from './pages/ecommerce/Cart3';
-import Pay from './pages/ecommerce/Pay';
-import Campaigns from './pages/Campaigns';
-import UsersTabs from './pages/community/UsersTabs';
-import UsersTiles from './pages/community/UsersTiles';
-import Profile from './pages/community/Profile';
-import Feed from './pages/community/Feed';
-import Forum from './pages/community/Forum';
-import ForumPost from './pages/community/ForumPost';
-import Meetups from './pages/community/Meetups';
-import MeetupsPost from './pages/community/MeetupsPost';
-import CreditCards from './pages/finance/CreditCards';
-import Transactions from './pages/finance/Transactions';
-import TransactionDetails from './pages/finance/TransactionDetails';
-import JobListing from './pages/job/JobListing';
-import JobPost from './pages/job/JobPost';
-import CompanyProfile from './pages/job/CompanyProfile';
-import TasksKanban from './pages/tasks/TasksKanban';
-import TasksList from './pages/tasks/TasksList';
 import AudioRegeneration from './pages/AudioRegeneration';
 import Inbox from './pages/Inbox';
-import Calendar from './pages/Calendar';
 import Account from './pages/settings/Account';
 import Notifications from './pages/settings/Notifications';
 import Apps from './pages/settings/Apps';
@@ -91,36 +63,8 @@ function App() {
         <Route exact path="/" element={<Home />} />
         <Route path="/dashboard/analytics" element={<Analytics />} />
         <Route path="/dashboard/fintech" element={<Fintech />} />
-        <Route path="/ecommerce/customers" element={<Customers />} />
-        <Route path="/ecommerce/orders" element={<Orders />} />
-        <Route path="/ecommerce/invoices" element={<Invoices />} />
-        <Route path="/ecommerce/shop" element={<Shop />} />
-        <Route path="/ecommerce/shop-2" element={<Shop2 />} />
-        <Route path="/ecommerce/product" element={<Product />} />
-        <Route path="/ecommerce/cart" element={<Cart />} />
-        <Route path="/ecommerce/cart-2" element={<Cart2 />} />
-        <Route path="/ecommerce/cart-3" element={<Cart3 />} />
-        <Route path="/ecommerce/pay" element={<Pay />} />
-        <Route path="/campaigns" element={<Campaigns />} />
-        <Route path="/community/users-tabs" element={<UsersTabs />} />
-        <Route path="/community/users-tiles" element={<UsersTiles />} />
-        <Route path="/community/profile" element={<Profile />} />
-        <Route path="/community/feed" element={<Feed />} />
-        <Route path="/community/forum" element={<Forum />} />
-        <Route path="/community/forum-post" element={<ForumPost />} />
-        <Route path="/community/meetups" element={<Meetups />} />
-        <Route path="/community/meetups-post" element={<MeetupsPost />} />
-        <Route path="/finance/cards" element={<CreditCards />} />
-        <Route path="/finance/transactions" element={<Transactions />} />
-        <Route path="/finance/transaction-details" element={<TransactionDetails />} />
-        <Route path="/job/job-listing" element={<JobListing />} />
-        <Route path="/job/job-post" element={<JobPost />} />
-        <Route path="/job/company-profile" element={<CompanyProfile />} />
-        <Route path="/tasks/kanban" element={<TasksKanban />} />
-        <Route path="/tasks/list" element={<TasksList />} />
         <Route path="/audio-regeneration" element={<AudioRegeneration />} />
         <Route path="/inbox" element={<Inbox />} />
-        <Route path="/calendar" element={<Calendar />} />
         <Route path="/settings/account" element={<Account />} />
         <Route path="/settings/notifications" element={<Notifications />} />
         <Route path="/settings/apps" element={<Apps />} />
