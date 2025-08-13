@@ -8,7 +8,7 @@ const colorClasses = {
   green: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
 };
 
-function AudioColumn({ title, color = 'gray', count = 0, children }) {
+function AudioColumn({ title, color = 'gray', count = 0, children, actionButton }) {
   return (
     <div className="flex-shrink-0 w-80">
       {/* Column header */}
@@ -22,6 +22,11 @@ function AudioColumn({ title, color = 'gray', count = 0, children }) {
               {count}
             </span>
           </div>
+          {actionButton && (
+            <div className="ml-auto">
+              {actionButton}
+            </div>
+          )}
         </div>
         
         {/* Cards container */}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-function AudioCard({ file, onProcessText, showProcessButton = false }) {
+function AudioCard({ file, onProcessText, showProcessButton = false, onTranscribe, onGenerateAudio }) {
   const [showTranscription, setShowTranscription] = useState(false);
   const [showProcessedText, setShowProcessedText] = useState(false);
 
@@ -158,22 +158,56 @@ function AudioCard({ file, onProcessText, showProcessButton = false }) {
 
       {/* Actions */}
       <div className="flex gap-2 mb-4">
-        {showProcessButton && (
+        {/* Transcribe button for files in upload status */}
+        {file.status === 'upload' && onTranscribe && (
           <button
-            onClick={onProcessText}
-            className="flex-1 px-3 py-2 bg-violet-500 text-white text-sm font-medium rounded hover:bg-violet-600 transition-colors"
+            onClick={() => onTranscribe(file.id)}
+            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           >
-            Process Text
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span>Transcribe</span>
           </button>
         )}
         
+        {/* Process Text button for files with transcription */}
+        {showProcessButton && (
+          <button
+            onClick={onProcessText}
+            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            <span>Enhance</span>
+          </button>
+        )}
+        
+        {/* Generate Audio button for files in processing status */}
+        {file.status === 'processing' && file.processedText && onGenerateAudio && (
+          <button
+            onClick={() => onGenerateAudio(file.id)}
+            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+            </svg>
+            <span>Generate</span>
+          </button>
+        )}
+        
+        {/* Download button for completed files */}
         {file.audioUrl && (
           <a
             href={file.audioUrl}
             download={`${file.name.replace(/\.[^/.]+$/, '')}_regenerated.wav`}
-            className="px-3 py-2 bg-green-500 text-white text-sm font-medium rounded hover:bg-green-600 transition-colors"
+            className="flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           >
-            Download
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            <span>Download</span>
           </a>
         )}
       </div>

@@ -13,6 +13,8 @@ function AudioRegeneration() {
   const [audioFiles, setAudioFiles] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // Audio processing workflow stages
   const columns = [
@@ -72,41 +74,53 @@ function AudioRegeneration() {
     );
   }, []);
 
+  // Transcribe a single file
+  const transcribeFile = async (fileId) => {
+    const file = audioFiles.find(f => f.id === fileId);
+    if (!file) return;
+    
+    try {
+      moveFile(file.id, 'transcribing');
+      updateFileProgress(file.id, 0);
+      
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('file', file.file);
+      
+      updateFileProgress(file.id, 50);
+      
+      // Call Whisper API  
+      const response = await fetch('http://localhost:8080/transcribe', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) throw new Error('Transcription failed');
+      
+      const result = await response.json();
+      updateFileProgress(file.id, 100, { 
+        transcription: result.text,
+        error: null 
+      });
+      
+    } catch (error) {
+      updateFileProgress(file.id, 0, { 
+        error: error.message,
+        status: 'upload'
+      });
+    }
+  };
+
   // Transcribe all files in upload column
   const transcribeAll = async () => {
-    const uploadFiles = audioFiles.filter(file => file.status === 'upload');
-    
-    for (const file of uploadFiles) {
-      try {
-        moveFile(file.id, 'transcribing');
-        updateFileProgress(file.id, 0);
-        
-        // Create FormData for file upload
-        const formData = new FormData();
-        formData.append('file', file.file);
-        
-        updateFileProgress(file.id, 50);
-        
-        // Call Whisper API  
-        const response = await fetch('http://localhost:8080/transcribe', {
-          method: 'POST',
-          body: formData
-        });
-        
-        if (!response.ok) throw new Error('Transcription failed');
-        
-        const result = await response.json();
-        updateFileProgress(file.id, 100, { 
-          transcription: result.text,
-          error: null 
-        });
-        
-      } catch (error) {
-        updateFileProgress(file.id, 0, { 
-          error: error.message,
-          status: 'upload'
-        });
+    setIsTranscribing(true);
+    try {
+      const uploadFiles = audioFiles.filter(file => file.status === 'upload');
+      for (const file of uploadFiles) {
+        await transcribeFile(file.id);
       }
+    } finally {
+      setIsTranscribing(false);
     }
   };
 
@@ -130,46 +144,58 @@ function AudioRegeneration() {
     );
   };
 
+  // Generate audio for a single file
+  const generateAudio = async (fileId) => {
+    const file = audioFiles.find(f => f.id === fileId);
+    if (!file || !file.processedText) return;
+    
+    try {
+      moveFile(file.id, 'generating');
+      updateFileProgress(file.id, 0);
+      
+      // Call Kokoro TTS API
+      const response = await fetch('http://localhost:8880/v1/audio/speech', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          input: file.processedText,
+          voice: 'af_heart',
+          response_format: 'mp3',
+          stream: false
+        })
+      });
+      
+      if (!response.ok) throw new Error('Audio generation failed');
+      
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      
+      updateFileProgress(file.id, 100, { 
+        audioUrl,
+        error: null 
+      });
+      moveFile(file.id, 'complete');
+      
+    } catch (error) {
+      updateFileProgress(file.id, 0, { 
+        error: error.message,
+        status: 'processing'
+      });
+    }
+  };
+
   // Generate audio for all files in processing column
   const generateAudioAll = async () => {
-    const processingFiles = audioFiles.filter(file => 
-      file.status === 'processing' && file.processedText
-    );
-    
-    for (const file of processingFiles) {
-      try {
-        moveFile(file.id, 'generating');
-        updateFileProgress(file.id, 0);
-        
-        // Call Kokoro TTS API
-        const response = await fetch('http://localhost:8880/v1/audio/speech', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            input: file.processedText,
-            voice: 'af_heart',
-            response_format: 'mp3',
-            stream: false
-          })
-        });
-        
-        if (!response.ok) throw new Error('Audio generation failed');
-        
-        const audioBlob = await response.blob();
-        const audioUrl = URL.createObjectURL(audioBlob);
-        
-        updateFileProgress(file.id, 100, { 
-          audioUrl,
-          error: null 
-        });
-        moveFile(file.id, 'complete');
-        
-      } catch (error) {
-        updateFileProgress(file.id, 0, { 
-          error: error.message,
-          status: 'processing'
-        });
+    setIsGenerating(true);
+    try {
+      const processingFiles = audioFiles.filter(file => 
+        file.status === 'processing' && file.processedText
+      );
+      for (const file of processingFiles) {
+        await generateAudio(file.id);
       }
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -229,23 +255,7 @@ function AudioRegeneration() {
                 </p>
               </div>
 
-              {/* Right: Actions */}
-              <div className="grid grid-flow-col sm:auto-cols-max justify-start sm:justify-end gap-2">
-                <button 
-                  onClick={transcribeAll}
-                  disabled={getFilesForColumn('upload').length === 0}
-                  className="btn bg-blue-500 text-white hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                >
-                  Transcribe All ({getFilesForColumn('upload').length})
-                </button>
-                <button 
-                  onClick={generateAudioAll}
-                  disabled={getFilesForColumn('processing').length === 0}
-                  className="btn bg-purple-500 text-white hover:bg-purple-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                >
-                  Generate Audio All ({getFilesForColumn('processing').length})
-                </button>
-              </div>
+              {/* Right: Actions - Removed, moved to column headers */}
             </div>
 
             {/* File Upload Zone */}
@@ -264,6 +274,53 @@ function AudioRegeneration() {
                   title={column.title}
                   color={column.color}
                   count={getFilesForColumn(column.id).length}
+                  actionButton={
+                    column.id === 'upload' && getFilesForColumn('upload').length > 0 ? (
+                      <button 
+                        onClick={transcribeAll}
+                        disabled={isTranscribing || audioFiles.some(f => f.status === 'transcribing')}
+                        className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                          isTranscribing || audioFiles.some(f => f.status === 'transcribing')
+                            ? 'text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800 cursor-not-allowed'
+                            : 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30'
+                        }`}
+                      >
+                        {isTranscribing ? (
+                          <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        ) : (
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                        )}
+                        <span>{isTranscribing ? 'Processing...' : 'All'}</span>
+                      </button>
+                    ) : column.id === 'processing' && getFilesForColumn('processing').filter(f => f.processedText).length > 0 ? (
+                      <button 
+                        onClick={generateAudioAll}
+                        disabled={isGenerating || audioFiles.some(f => f.status === 'generating')}
+                        className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                          isGenerating || audioFiles.some(f => f.status === 'generating')
+                            ? 'text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800 cursor-not-allowed'
+                            : 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30'
+                        }`}
+                      >
+                        {isGenerating ? (
+                          <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        ) : (
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                        )}
+                        <span>{isGenerating ? 'Processing...' : 'All'}</span>
+                      </button>
+                    ) : null
+                  }
                 >
                   {getFilesForColumn(column.id).map(file => (
                     <AudioCard
@@ -271,6 +328,8 @@ function AudioRegeneration() {
                       file={file}
                       onProcessText={() => openProcessingModal(file.id)}
                       showProcessButton={column.id === 'transcribing' && file.transcription && !file.error}
+                      onTranscribe={transcribeFile}
+                      onGenerateAudio={generateAudio}
                     />
                   ))}
                 </AudioColumn>
