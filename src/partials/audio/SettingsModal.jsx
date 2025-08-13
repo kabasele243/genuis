@@ -22,6 +22,7 @@ function SettingsModal({ isOpen, onClose, settings, onSave }) {
   const [customVoiceName, setCustomVoiceName] = useState('');
   const [isCreatingCombination, setIsCreatingCombination] = useState(false);
   const [showCombineInterface, setShowCombineInterface] = useState(false);
+  const [activeTab, setActiveTab] = useState('text');
 
   useEffect(() => {
     if (settings) {
@@ -64,11 +65,11 @@ function SettingsModal({ isOpen, onClose, settings, onSave }) {
         { id: 'af_heart', name: 'Heart', gender: 'Female', accent: 'American', isBase: true },
         { id: 'af_sky', name: 'Sky', gender: 'Female', accent: 'American', isBase: true },
         { id: 'af_river', name: 'River', gender: 'Female', accent: 'American', isBase: true },
-        { id: 'am_rock', name: 'Rock', gender: 'Male', accent: 'American', isBase: true },
-        { id: 'am_bolt', name: 'Bolt', gender: 'Male', accent: 'American', isBase: true },
-        { id: 'am_marble', name: 'Marble', gender: 'Male', accent: 'American', isBase: true },
+        { id: 'am_adam', name: 'Adam', gender: 'Male', accent: 'American', isBase: true },
+        { id: 'am_echo', name: 'Echo', gender: 'Male', accent: 'American', isBase: true },
+        { id: 'am_michael', name: 'Michael', gender: 'Male', accent: 'American', isBase: true },
         { id: 'bf_emma', name: 'Emma', gender: 'Female', accent: 'British', isBase: true },
-        { id: 'bf_isabella', name: 'Isabella', gender: 'Female', accent: 'British', isBase: true },
+        { id: 'bf_lily', name: 'Lily', gender: 'Female', accent: 'British', isBase: true },
         { id: 'bm_george', name: 'George', gender: 'Male', accent: 'British', isBase: true },
         { id: 'bm_lewis', name: 'Lewis', gender: 'Male', accent: 'British', isBase: true }
       ]);
@@ -156,35 +157,12 @@ function SettingsModal({ isOpen, onClose, settings, onSave }) {
         isPredefined: true,
         components: ['am_adam', 'am_echo', 'am_michael'],
         description: 'Deep authoritative male voice'
-      },
-      {
-        id: 'bf_emma+af_heart+bm_george',
-        name: 'Diplomat',
-        gender: 'Mixed',
-        accent: 'International',
-        isBase: false,
-        isPredefined: true,
-        components: ['bf_emma', 'af_heart', 'bm_george'],
-        description: 'Refined international blend'
-      },
-      {
-        id: 'af_bella+am_michael+bf_emma',
-        name: 'Executive',
-        gender: 'Mixed',
-        accent: 'Professional',
-        isBase: false,
-        isPredefined: true,
-        components: ['af_bella', 'am_michael', 'bf_emma'],
-        description: 'Professional and authoritative'
       }
     ];
   };
 
   const loadCombinedVoices = () => {
-    // Start with predefined voices
     const predefined = getPredefinedCombinedVoices();
-    
-    // Load user-created voices from localStorage
     const saved = localStorage.getItem('combinedVoices');
     let userCreated = [];
     if (saved) {
@@ -194,18 +172,13 @@ function SettingsModal({ isOpen, onClose, settings, onSave }) {
         console.error('Failed to load combined voices:', error);
       }
     }
-    
-    // Combine predefined and user-created voices
     const allCombined = [...predefined, ...userCreated];
     setCombinedVoices(allCombined);
   };
 
   const saveCombinedVoices = (voices) => {
-    // Only save user-created voices to localStorage (not predefined ones)
     const userCreated = voices.filter(v => !v.isPredefined);
     localStorage.setItem('combinedVoices', JSON.stringify(userCreated));
-    
-    // Update state with all voices (predefined + user-created)
     const predefined = getPredefinedCombinedVoices();
     setCombinedVoices([...predefined, ...userCreated]);
   };
@@ -219,7 +192,6 @@ function SettingsModal({ isOpen, onClose, settings, onSave }) {
     setIsCreatingCombination(true);
     try {
       const combinedId = selectedVoicesForCombination.join('+');
-      
       const response = await fetch('http://localhost:8880/v1/audio/speech', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -238,6 +210,7 @@ function SettingsModal({ isOpen, onClose, settings, onSave }) {
           gender: 'Mixed',
           accent: 'Combined',
           isBase: false,
+          isPredefined: false,
           components: selectedVoicesForCombination
         };
         
@@ -271,7 +244,6 @@ function SettingsModal({ isOpen, onClose, settings, onSave }) {
   };
 
   const deleteCombinedVoice = (voiceId) => {
-    // Don't allow deletion of predefined voices
     const voiceToDelete = combinedVoices.find(v => v.id === voiceId);
     if (voiceToDelete?.isPredefined) {
       alert('Cannot delete predefined voices. You can only delete custom voices you created.');
@@ -310,8 +282,7 @@ function SettingsModal({ isOpen, onClose, settings, onSave }) {
   const playVoiceSample = async (voiceId) => {
     try {
       setPlayingVoice(voiceId);
-      
-      const sampleText = "Hello! This is a sample of my voice. I can help you with audio generation.";
+      const sampleText = "Hello! This is a sample of my voice.";
       
       const response = await fetch('http://localhost:8880/v1/audio/speech', {
         method: 'POST',
@@ -342,7 +313,6 @@ function SettingsModal({ isOpen, onClose, settings, onSave }) {
       };
       
       await audio.play();
-      
     } catch (error) {
       console.error('Failed to play voice sample:', error);
       setPlayingVoice(null);
@@ -361,315 +331,606 @@ function SettingsModal({ isOpen, onClose, settings, onSave }) {
 
   if (!isOpen) return null;
 
-  // Organize voices: predefined combined, user-created combined, then base voices
   const predefinedCombined = combinedVoices.filter(v => v.isPredefined);
   const userCombined = combinedVoices.filter(v => !v.isPredefined);
-  const allVoices = [...predefinedCombined, ...userCombined, ...availableVoices];
 
   return (
-    <div className="fixed inset-0 bg-gray-900 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div className="relative top-20 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-            Settings
-          </h3>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Settings</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Customize your audio generation preferences</p>
+            </div>
+          </div>
           <button
             onClick={() => {
               stopAllAudio();
               onClose();
             }}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            className="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        <div className="space-y-6">
-          <div>
-            <h4 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
-              Text Processing Settings
-            </h4>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Processing Prompt
-                </label>
-                <textarea
-                  value={localSettings.textProcessing.prompt}
-                  onChange={(e) => setLocalSettings(prev => ({
-                    ...prev,
-                    textProcessing: {
-                      ...prev.textProcessing,
-                      prompt: e.target.value
-                    }
-                  }))}
-                  placeholder="Enter the prompt for text processing (e.g., 'Improve clarity and fix grammar')"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
-                  rows={3}
-                />
+        {/* Tab Navigation */}
+        <div className="border-b border-gray-200 dark:border-gray-700">
+          <nav className="flex px-6">
+            <button
+              onClick={() => setActiveTab('text')}
+              className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'text'
+                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span>Text Processing</span>
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Additional Instructions
-                </label>
-                <textarea
-                  value={localSettings.textProcessing.instructions}
-                  onChange={(e) => setLocalSettings(prev => ({
-                    ...prev,
-                    textProcessing: {
-                      ...prev.textProcessing,
-                      instructions: e.target.value
-                    }
-                  }))}
-                  placeholder="Add any specific instructions for processing (e.g., 'Keep technical terms unchanged')"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
-                  rows={3}
-                />
+            </button>
+            <button
+              onClick={() => setActiveTab('voice')}
+              className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'voice'
+                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+                <span>Voice & Audio</span>
               </div>
-            </div>
-          </div>
+            </button>
+          </nav>
+        </div>
 
-          <div>
-            <h4 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
-              Voice Settings
-            </h4>
-            
-            <div className="space-y-4">
-              <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Select Voice
+        {/* Content */}
+        <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+          {activeTab === 'text' && (
+            <div className="space-y-6">
+              {/* Persona Presets */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                  Processing Persona
                 </label>
-                <button
-                  onClick={() => setShowCombineInterface(!showCombineInterface)}
-                  className="text-sm px-3 py-1 bg-violet-600 text-white rounded-md hover:bg-violet-700 transition-colors"
-                >
-                  {showCombineInterface ? 'Cancel Combination' : 'Create Combined Voice'}
-                </button>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+                  {[
+                    {
+                      id: 'professional',
+                      name: 'Professional',
+                      icon: '💼',
+                      prompt: 'You are a professional editor. Transform the transcribed text into clear, professional language suitable for business communications. Fix grammar, improve clarity, and maintain a formal tone.',
+                      description: 'Business & formal tone'
+                    },
+                    {
+                      id: 'casual',
+                      name: 'Casual',
+                      icon: '😊',
+                      prompt: 'You are a friendly editor. Transform the transcribed text into clear, conversational language. Fix grammar while maintaining a casual, approachable tone.',
+                      description: 'Conversational & friendly'
+                    },
+                    {
+                      id: 'academic',
+                      name: 'Academic',
+                      icon: '🎓',
+                      prompt: 'You are an academic editor. Transform the transcribed text into scholarly language with proper structure. Use formal vocabulary, correct grammar, and ensure academic precision.',
+                      description: 'Scholarly & precise'
+                    },
+                    {
+                      id: 'creative',
+                      name: 'Creative',
+                      icon: '🎨',
+                      prompt: 'You are a creative writer. Transform the transcribed text into engaging, vivid language. Use creative expressions, improve flow, and make the content more compelling.',
+                      description: 'Engaging & expressive'
+                    },
+                    {
+                      id: 'technical',
+                      name: 'Technical',
+                      icon: '🔧',
+                      prompt: 'You are a technical writer. Transform the transcribed text into clear, precise technical documentation. Maintain technical accuracy, use proper terminology, and ensure clarity.',
+                      description: 'Precise & accurate'
+                    },
+                    {
+                      id: 'summary',
+                      name: 'Summarizer',
+                      icon: '📝',
+                      prompt: 'You are a summarization expert. Transform the transcribed text into a concise summary that captures the key points and main ideas clearly and efficiently.',
+                      description: 'Concise key points'
+                    }
+                  ].map((persona) => (
+                    <button
+                      key={persona.id}
+                      onClick={() => setLocalSettings(prev => ({
+                        ...prev,
+                        textProcessing: {
+                          ...prev.textProcessing,
+                          prompt: persona.prompt
+                        }
+                      }))}
+                      className={`p-3 text-left border-2 rounded-lg transition-all hover:shadow-md ${
+                        localSettings.textProcessing.prompt === persona.prompt
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-lg">{persona.icon}</span>
+                        <span className="font-medium text-gray-900 dark:text-white text-sm">{persona.name}</span>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{persona.description}</p>
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {showCombineInterface && (
-                <div className="p-4 bg-violet-50 dark:bg-violet-900/20 rounded-lg border border-violet-200 dark:border-violet-800 mb-4">
-                  <div className="mb-3">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Custom Voice Name
+              <div className="grid gap-6">
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="block text-sm font-semibold text-gray-900 dark:text-white">
+                      Custom Processing Prompt
                     </label>
-                    <input
-                      type="text"
-                      value={customVoiceName}
-                      onChange={(e) => setCustomVoiceName(e.target.value)}
-                      placeholder="Enter a name for your combined voice"
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500 dark:bg-gray-700 dark:text-gray-100"
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setLocalSettings(prev => ({
+                          ...prev,
+                          textProcessing: {
+                            ...prev.textProcessing,
+                            prompt: 'You are a professional editor. Please process the following transcribed text:\n\n{TRANSCRIPT}\n\nInstructions: {INSTRUCTIONS}\n\nImproved text:'
+                          }
+                        }))}
+                        className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        Use Template
+                      </button>
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <textarea
+                      value={localSettings.textProcessing.prompt}
+                      onChange={(e) => setLocalSettings(prev => ({
+                        ...prev,
+                        textProcessing: {
+                          ...prev.textProcessing,
+                          prompt: e.target.value
+                        }
+                      }))}
+                      placeholder="Enter your custom prompt for text processing..."
+                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none transition-colors"
+                      rows={5}
                     />
                   </div>
-                  <div className="mb-3">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Select 2 or more voices to combine:
-                    </label>
-                    <div className="grid grid-cols-3 gap-2 max-h-32 overflow-y-auto">
-                      {availableVoices.filter(v => v.isBase).map(voice => (
-                        <label
-                          key={voice.id}
-                          className="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
+                  <div className="mt-2 space-y-1">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Available variables: <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs">{'{TRANSCRIPT}'}</code>, <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs">{'{INSTRUCTIONS}'}</code>
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { var: '{TRANSCRIPT}', desc: 'Original transcribed text' },
+                        { var: '{INSTRUCTIONS}', desc: 'Additional instructions below' },
+                        { var: '{FILENAME}', desc: 'Original filename' },
+                        { var: '{LENGTH}', desc: 'Text length in words' }
+                      ].map((variable) => (
+                        <button
+                          key={variable.var}
+                          onClick={() => {
+                            const textarea = document.querySelector('textarea[placeholder*="custom prompt"]');
+                            if (textarea) {
+                              const start = textarea.selectionStart;
+                              const end = textarea.selectionEnd;
+                              const newValue = localSettings.textProcessing.prompt.substring(0, start) + variable.var + localSettings.textProcessing.prompt.substring(end);
+                              setLocalSettings(prev => ({
+                                ...prev,
+                                textProcessing: {
+                                  ...prev.textProcessing,
+                                  prompt: newValue
+                                }
+                              }));
+                            }
+                          }}
+                          className="text-xs px-2 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
+                          title={variable.desc}
                         >
-                          <input
-                            type="checkbox"
-                            checked={selectedVoicesForCombination.includes(voice.id)}
-                            onChange={() => toggleVoiceForCombination(voice.id)}
-                            className="text-violet-600"
-                          />
-                          <span className="text-sm">{voice.name}</span>
-                        </label>
+                          {variable.var}
+                        </button>
                       ))}
                     </div>
                   </div>
-                  <button
-                    onClick={createCombinedVoice}
-                    disabled={isCreatingCombination || selectedVoicesForCombination.length < 2 || !customVoiceName.trim()}
-                    className="w-full px-4 py-2 bg-violet-600 text-white rounded-md hover:bg-violet-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {isCreatingCombination ? 'Creating...' : `Create Combined Voice (${selectedVoicesForCombination.length} selected)`}
-                  </button>
                 </div>
-              )}
+                
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                    Additional Instructions
+                  </label>
+                  <div className="relative">
+                    <textarea
+                      value={localSettings.textProcessing.instructions}
+                      onChange={(e) => setLocalSettings(prev => ({
+                        ...prev,
+                        textProcessing: {
+                          ...prev.textProcessing,
+                          instructions: e.target.value
+                        }
+                      }))}
+                      placeholder="Add any specific processing instructions..."
+                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none transition-colors"
+                      rows={3}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    These instructions will be inserted into the {'{INSTRUCTIONS}'} variable in your prompt.
+                  </p>
+                </div>
 
-              <div className="grid grid-cols-2 gap-3 max-h-64 overflow-y-auto">
-                {allVoices.map(voice => (
-                  <div
-                    key={voice.id}
-                    className={`p-3 border rounded-lg cursor-pointer transition-all ${
-                      localSettings.voice.voiceId === voice.id
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                        : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
-                    }`}
-                    onClick={() => handleVoiceSelect(voice.id)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-900 dark:text-gray-100">
-                          {voice.name}
-                        </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {voice.gender} • {voice.accent}
-                          {voice.isPredefined && (
-                            <span className="ml-2 px-2 py-0.5 text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded">
-                              Preset
-                            </span>
-                          )}
-                        </div>
-                        {voice.components && (
-                          <div className="text-xs text-violet-600 dark:text-violet-400">
-                            Combined: {voice.components.join(' + ')}
-                          </div>
-                        )}
-                        {voice.description && (
-                          <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                            {voice.description}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex gap-1">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (playingVoice === voice.id) {
-                              stopAllAudio();
-                            } else {
-                              playVoiceSample(voice.id);
-                            }
-                          }}
-                          className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                {/* Quick Actions */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                    Quick Actions
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      {
+                        name: 'Grammar Fix Only',
+                        instruction: 'Only fix grammar and spelling errors. Do not change the tone, style, or content.'
+                      },
+                      {
+                        name: 'Remove Filler Words',
+                        instruction: 'Remove filler words like "um", "uh", "you know", "like" while maintaining natural flow.'
+                      },
+                      {
+                        name: 'Add Punctuation',
+                        instruction: 'Add proper punctuation and paragraph breaks for better readability.'
+                      },
+                      {
+                        name: 'Maintain Technical Terms',
+                        instruction: 'Keep all technical terms, jargon, and specialized vocabulary unchanged.'
+                      }
+                    ].map((action) => (
+                      <button
+                        key={action.name}
+                        onClick={() => setLocalSettings(prev => ({
+                          ...prev,
+                          textProcessing: {
+                            ...prev.textProcessing,
+                            instructions: prev.textProcessing.instructions 
+                              ? `${prev.textProcessing.instructions}\n\n${action.instruction}`
+                              : action.instruction
+                          }
+                        }))}
+                        className="text-xs px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        + {action.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'voice' && (
+            <div className="space-y-8">
+              {/* Voice Selection */}
+              <div>
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Voice Selection</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Choose from preset combinations or base voices</p>
+                </div>
+
+                {/* Preset Combined Voices */}
+                {predefinedCombined.length > 0 && (
+                  <div className="mb-8">
+                    <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                      <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                      Preset Voices
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {predefinedCombined.map(voice => (
+                        <div
+                          key={voice.id}
+                          className={`group p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                            localSettings.voice.voiceId === voice.id
+                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-lg'
+                              : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md'
+                          }`}
+                          onClick={() => handleVoiceSelect(voice.id)}
                         >
-                          {playingVoice === voice.id ? (
-                            <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
-                            </svg>
-                          ) : (
-                            <svg className="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                          )}
-                        </button>
-                        {!voice.isBase && (
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-2 mb-1">
+                                <h5 className="font-semibold text-gray-900 dark:text-white">{voice.name}</h5>
+                                <span className="px-2 py-1 text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full">
+                                  Preset
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                                {voice.gender} • {voice.accent}
+                              </p>
+                              <p className="text-xs text-gray-400 dark:text-gray-500">
+                                {voice.description}
+                              </p>
+                              <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                                {voice.components.join(' + ')}
+                              </p>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (playingVoice === voice.id) {
+                                  stopAllAudio();
+                                } else {
+                                  playVoiceSample(voice.id);
+                                }
+                              }}
+                              className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                            >
+                              {playingVoice === voice.id ? (
+                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+                                </svg>
+                              ) : (
+                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M8 5v14l11-7z"/>
+                                </svg>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* User Created Voices */}
+                {userCombined.length > 0 && (
+                  <div className="mb-8">
+                    <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                      <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+                      Your Custom Voices
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {userCombined.map(voice => (
+                        <div
+                          key={voice.id}
+                          className={`group p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                            localSettings.voice.voiceId === voice.id
+                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-lg'
+                              : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md'
+                          }`}
+                          onClick={() => handleVoiceSelect(voice.id)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <h5 className="font-semibold text-gray-900 dark:text-white mb-1">{voice.name}</h5>
+                              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                                {voice.gender} • {voice.accent}
+                              </p>
+                              <p className="text-xs text-purple-600 dark:text-purple-400">
+                                {voice.components.join(' + ')}
+                              </p>
+                            </div>
+                            <div className="flex space-x-1">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (playingVoice === voice.id) {
+                                    stopAllAudio();
+                                  } else {
+                                    playVoiceSample(voice.id);
+                                  }
+                                }}
+                                className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                              >
+                                {playingVoice === voice.id ? (
+                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+                                  </svg>
+                                ) : (
+                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M8 5v14l11-7z"/>
+                                  </svg>
+                                )}
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (confirm(`Delete voice "${voice.name}"?`)) {
+                                    deleteCombinedVoice(voice.id);
+                                  }
+                                }}
+                                className="p-2 rounded-full text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Base Voices */}
+                <div>
+                  <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                    <span className="w-2 h-2 bg-gray-400 rounded-full mr-2"></span>
+                    Base Voices
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {availableVoices.filter(v => v.isBase).map(voice => (
+                      <div
+                        key={voice.id}
+                        className={`group p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                          localSettings.voice.voiceId === voice.id
+                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                        }`}
+                        onClick={() => handleVoiceSelect(voice.id)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            <h5 className="font-medium text-gray-900 dark:text-white text-sm truncate">{voice.name}</h5>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">{voice.gender}</p>
+                          </div>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (confirm(`Delete combined voice "${voice.name}"?`)) {
-                                deleteCombinedVoice(voice.id);
+                              if (playingVoice === voice.id) {
+                                stopAllAudio();
+                              } else {
+                                playVoiceSample(voice.id);
                               }
                             }}
-                            className="p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 transition-colors"
+                            className="p-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
+                            {playingVoice === voice.id ? (
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+                              </svg>
+                            ) : (
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z"/>
+                              </svg>
+                            )}
                           </button>
-                        )}
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Speed
-                  </label>
-                  <input
-                    type="range"
-                    min="0.5"
-                    max="2.0"
-                    step="0.1"
-                    value={localSettings.voice.speed}
-                    onChange={(e) => setLocalSettings(prev => ({
-                      ...prev,
-                      voice: {
-                        ...prev.voice,
-                        speed: parseFloat(e.target.value)
-                      }
-                    }))}
-                    className="w-full"
-                  />
-                  <div className="text-center text-sm text-gray-600 dark:text-gray-400">
-                    {localSettings.voice.speed}x
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Pitch
-                  </label>
-                  <input
-                    type="range"
-                    min="0.5"
-                    max="2.0"
-                    step="0.1"
-                    value={localSettings.voice.pitch}
-                    onChange={(e) => setLocalSettings(prev => ({
-                      ...prev,
-                      voice: {
-                        ...prev.voice,
-                        pitch: parseFloat(e.target.value)
-                      }
-                    }))}
-                    className="w-full"
-                  />
-                  <div className="text-center text-sm text-gray-600 dark:text-gray-400">
-                    {localSettings.voice.pitch}x
+                    ))}
                   </div>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Output Format
-                </label>
-                <select
-                  value={localSettings.voice.responseFormat}
-                  onChange={(e) => setLocalSettings(prev => ({
-                    ...prev,
-                    voice: {
-                      ...prev.voice,
-                      responseFormat: e.target.value
-                    }
-                  }))}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
-                >
-                  <option value="mp3">MP3</option>
-                  <option value="wav">WAV</option>
-                  <option value="opus">Opus</option>
-                  <option value="aac">AAC</option>
-                  <option value="flac">FLAC</option>
-                </select>
+              {/* Audio Controls */}
+              <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Audio Controls</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                      Speed: {localSettings.voice.speed}x
+                    </label>
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="2.0"
+                      step="0.1"
+                      value={localSettings.voice.speed}
+                      onChange={(e) => setLocalSettings(prev => ({
+                        ...prev,
+                        voice: {
+                          ...prev.voice,
+                          speed: parseFloat(e.target.value)
+                        }
+                      }))}
+                      className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                      Pitch: {localSettings.voice.pitch}x
+                    </label>
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="2.0"
+                      step="0.1"
+                      value={localSettings.voice.pitch}
+                      onChange={(e) => setLocalSettings(prev => ({
+                        ...prev,
+                        voice: {
+                          ...prev.voice,
+                          pitch: parseFloat(e.target.value)
+                        }
+                      }))}
+                      className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                      Output Format
+                    </label>
+                    <select
+                      value={localSettings.voice.responseFormat}
+                      onChange={(e) => setLocalSettings(prev => ({
+                        ...prev,
+                        voice: {
+                          ...prev.voice,
+                          responseFormat: e.target.value
+                        }
+                      }))}
+                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
+                    >
+                      <option value="mp3">MP3</option>
+                      <option value="wav">WAV</option>
+                      <option value="opus">Opus</option>
+                      <option value="aac">AAC</option>
+                      <option value="flac">FLAC</option>
+                    </select>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
-        <div className="flex justify-end gap-3 mt-6">
+        {/* Footer */}
+        <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
           <button
             onClick={() => {
               stopAllAudio();
               onClose();
             }}
-            className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+            className="px-6 py-2.5 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
+            className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg"
           >
             Save Settings
           </button>
         </div>
       </div>
+
+      <style jsx>{`
+        .slider::-webkit-slider-thumb {
+          appearance: none;
+          height: 20px;
+          width: 20px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+          cursor: pointer;
+          box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .slider::-moz-range-thumb {
+          height: 20px;
+          width: 20px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+          cursor: pointer;
+          border: none;
+          box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+      `}</style>
     </div>
   );
 }
