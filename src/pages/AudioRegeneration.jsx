@@ -7,6 +7,7 @@ import AudioColumn from '../partials/audio/AudioColumn';
 import AudioCard from '../partials/audio/AudioCard';
 import FileUpload from '../partials/audio/FileUpload';
 import TextProcessingModal from '../partials/audio/TextProcessingModal';
+import SettingsModal from '../partials/audio/SettingsModal';
 
 function AudioRegeneration() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -15,6 +16,19 @@ function AudioRegeneration() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settings, setSettings] = useState({
+    textProcessing: {
+      prompt: 'Improve clarity, fix grammar, and enhance readability while maintaining the original meaning',
+      instructions: 'Keep technical terms unchanged, maintain the original tone and style'
+    },
+    voice: {
+      voiceId: 'af_heart',
+      speed: 1.0,
+      pitch: 1.0,
+      responseFormat: 'mp3'
+    }
+  });
 
   // Audio processing workflow stages
   const columns = [
@@ -153,14 +167,14 @@ function AudioRegeneration() {
       moveFile(file.id, 'generating');
       updateFileProgress(file.id, 0);
       
-      // Call Kokoro TTS API
+      // Call Kokoro TTS API with settings
       const response = await fetch('http://localhost:8880/v1/audio/speech', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           input: file.processedText,
-          voice: 'af_heart',
-          response_format: 'mp3',
+          voice: settings.voice.voiceId,
+          response_format: settings.voice.responseFormat,
           stream: false
         })
       });
@@ -255,7 +269,19 @@ function AudioRegeneration() {
                 </p>
               </div>
 
-              {/* Right: Actions - Removed, moved to column headers */}
+              {/* Right: Settings Button */}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span className="font-medium">Settings</span>
+                </button>
+              </div>
             </div>
 
             {/* File Upload Zone */}
@@ -345,6 +371,15 @@ function AudioRegeneration() {
         onClose={() => setIsModalOpen(false)}
         file={selectedFile}
         onUpdateFile={updateFileFromModal}
+        settings={settings}
+      />
+      
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        settings={settings}
+        onSave={setSettings}
       />
     </div>
   );

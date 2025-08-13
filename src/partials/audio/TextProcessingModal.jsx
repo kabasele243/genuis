@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import OpenAI from 'openai';
 
-function TextProcessingModal({ isOpen, onClose, file, onUpdateFile }) {
+function TextProcessingModal({ isOpen, onClose, file, onUpdateFile, settings }) {
   const [customPrompt, setCustomPrompt] = useState('');
   const [processedText, setProcessedText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -13,16 +13,20 @@ function TextProcessingModal({ isOpen, onClose, file, onUpdateFile }) {
     dangerouslyAllowBrowser: true
   });
 
-  // Default prompt
-  const defaultPrompt = `You are a text enhancement assistant. Your task is to improve the clarity, grammar, and structure of transcribed text while preserving the original meaning and intent. Remove filler words, fix grammar issues, and make the text more readable and professional.`;
+  // Use settings or default prompt
+  const defaultPrompt = settings?.textProcessing?.prompt || 
+    `You are a text enhancement assistant. Your task is to improve the clarity, grammar, and structure of transcribed text while preserving the original meaning and intent. Remove filler words, fix grammar issues, and make the text more readable and professional.`;
 
   useEffect(() => {
     if (isOpen && file) {
-      setCustomPrompt(defaultPrompt);
+      const promptToUse = settings?.textProcessing?.prompt 
+        ? `${settings.textProcessing.prompt}${settings.textProcessing.instructions ? `\n\nAdditional Instructions: ${settings.textProcessing.instructions}` : ''}`
+        : defaultPrompt;
+      setCustomPrompt(promptToUse);
       setProcessedText(file.processedText || '');
       setError(null);
     }
-  }, [isOpen, file]);
+  }, [isOpen, file, settings]);
 
   const processText = async () => {
     if (!file?.transcription || !customPrompt.trim()) return;
