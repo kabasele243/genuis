@@ -17,7 +17,9 @@ function AudioRegeneration() {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [settings, setSettings] = useState({
+  
+  // Load settings from localStorage or use defaults
+  const getDefaultSettings = () => ({
     textProcessing: {
       prompt: 'Improve clarity, fix grammar, and enhance readability while maintaining the original meaning',
       instructions: 'Keep technical terms unchanged, maintain the original tone and style'
@@ -29,6 +31,44 @@ function AudioRegeneration() {
       responseFormat: 'mp3'
     }
   });
+
+  const loadSettings = () => {
+    try {
+      const saved = localStorage.getItem('audioRegenerationSettings');
+      if (saved) {
+        const parsedSettings = JSON.parse(saved);
+        // Merge with defaults to ensure all properties exist
+        return {
+          ...getDefaultSettings(),
+          ...parsedSettings,
+          textProcessing: {
+            ...getDefaultSettings().textProcessing,
+            ...parsedSettings.textProcessing
+          },
+          voice: {
+            ...getDefaultSettings().voice,
+            ...parsedSettings.voice
+          }
+        };
+      }
+    } catch (error) {
+      console.error('Failed to load settings:', error);
+    }
+    return getDefaultSettings();
+  };
+
+  const [settings, setSettings] = useState(loadSettings());
+
+  // Save settings to localStorage
+  const saveSettings = (newSettings) => {
+    try {
+      localStorage.setItem('audioRegenerationSettings', JSON.stringify(newSettings));
+      setSettings(newSettings);
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+      setSettings(newSettings); // Still update state even if localStorage fails
+    }
+  };
 
   // Audio processing workflow stages
   const columns = [
@@ -379,7 +419,7 @@ function AudioRegeneration() {
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         settings={settings}
-        onSave={setSettings}
+        onSave={saveSettings}
       />
     </div>
   );
