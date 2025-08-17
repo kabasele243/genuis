@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import VoiceMixerModal from './VoiceMixerModal';
 
 function SettingsModal({ isOpen, onClose, settings, onSave }) {
   const [localSettings, setLocalSettings] = useState({
@@ -23,6 +24,8 @@ function SettingsModal({ isOpen, onClose, settings, onSave }) {
   const [isCreatingCombination, setIsCreatingCombination] = useState(false);
   const [showCombineInterface, setShowCombineInterface] = useState(false);
   const [activeTab, setActiveTab] = useState('text');
+  const [showAdvancedMixer, setShowAdvancedMixer] = useState(false);
+  const [advancedMixes, setAdvancedMixes] = useState([]);
 
   useEffect(() => {
     if (settings) {
@@ -34,6 +37,7 @@ function SettingsModal({ isOpen, onClose, settings, onSave }) {
     if (isOpen) {
       fetchAvailableVoices();
       loadCombinedVoices();
+      loadAdvancedMixes();
     }
   }, [isOpen]);
 
@@ -174,6 +178,60 @@ function SettingsModal({ isOpen, onClose, settings, onSave }) {
     }
     const allCombined = [...predefined, ...userCreated];
     setCombinedVoices(allCombined);
+  };
+
+  const loadAdvancedMixes = () => {
+    const saved = localStorage.getItem('advancedVoiceMixes');
+    if (saved) {
+      try {
+        const mixes = JSON.parse(saved);
+        setAdvancedMixes(mixes);
+      } catch (error) {
+        console.error('Failed to load advanced mixes:', error);
+      }
+    }
+  };
+
+  const saveAdvancedMix = (mixConfig) => {
+    const updatedMixes = [...advancedMixes, mixConfig];
+    setAdvancedMixes(updatedMixes);
+    localStorage.setItem('advancedVoiceMixes', JSON.stringify(updatedMixes));
+    
+    const newVoice = {
+      id: mixConfig.id,
+      name: mixConfig.name,
+      gender: 'Mixed',
+      accent: 'Custom Mix',
+      isBase: false,
+      isPredefined: false,
+      isAdvanced: true,
+      components: mixConfig.voices,
+      settings: mixConfig.settings,
+      effects: mixConfig.effects,
+      weights: mixConfig.weights
+    };
+    
+    const updatedCombinedVoices = [...combinedVoices, newVoice];
+    setCombinedVoices(updatedCombinedVoices);
+  };
+
+  const deleteAdvancedMix = (mixId) => {
+    const updatedMixes = advancedMixes.filter(m => m.id !== mixId);
+    setAdvancedMixes(updatedMixes);
+    localStorage.setItem('advancedVoiceMixes', JSON.stringify(updatedMixes));
+    
+    const updatedCombinedVoices = combinedVoices.filter(v => v.id !== mixId);
+    setCombinedVoices(updatedCombinedVoices);
+    
+    if (localSettings.voice.voiceId === mixId) {
+      setLocalSettings(prev => ({
+        ...prev,
+        voice: {
+          ...prev.voice,
+          voiceId: 'af_heart'
+        }
+      }));
+    }
   };
 
   const saveCombinedVoices = (voices) => {
@@ -627,9 +685,20 @@ function SettingsModal({ isOpen, onClose, settings, onSave }) {
             <div className="space-y-8">
               {/* Voice Selection */}
               <div>
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Voice Selection</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Choose from preset combinations or base voices</p>
+                <div className="mb-6 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Voice Selection</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Choose from preset combinations or base voices</p>
+                  </div>
+                  <button
+                    onClick={() => setShowAdvancedMixer(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all shadow-md"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                    </svg>
+                    Advanced Mixer
+                  </button>
                 </div>
 
                 {/* Preset Combined Voices */}
@@ -696,15 +765,95 @@ function SettingsModal({ isOpen, onClose, settings, onSave }) {
                   </div>
                 )}
 
+                {/* Advanced Mixed Voices */}
+                {combinedVoices.filter(v => v.isAdvanced).length > 0 && (
+                  <div className="mb-8">
+                    <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                      <span className="w-2 h-2 bg-indigo-500 rounded-full mr-2"></span>
+                      Advanced Mixes
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {combinedVoices.filter(v => v.isAdvanced).map(voice => (
+                        <div
+                          key={voice.id}
+                          className={`group p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                            localSettings.voice.voiceId === voice.id
+                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-lg'
+                              : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md'
+                          }`}
+                          onClick={() => handleVoiceSelect(voice.id)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-2 mb-1">
+                                <h5 className="font-semibold text-gray-900 dark:text-white">{voice.name}</h5>
+                                <span className="px-2 py-1 text-xs bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 rounded-full">
+                                  Advanced
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                                {voice.gender} • {voice.accent}
+                              </p>
+                              <div className="text-xs text-gray-400 dark:text-gray-500 space-y-1">
+                                <p>Blend: {voice.settings?.blend || 'parallel'}</p>
+                                <p>Effects: {voice.effects && Object.entries(voice.effects).filter(([k, v]) => v > 0 && k !== 'tempo').map(([k]) => k).join(', ') || 'None'}</p>
+                              </div>
+                              <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                                {voice.components.join(' + ')}
+                              </p>
+                            </div>
+                            <div className="flex space-x-1">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (playingVoice === voice.id) {
+                                    stopAllAudio();
+                                  } else {
+                                    playVoiceSample(voice.id);
+                                  }
+                                }}
+                                className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                              >
+                                {playingVoice === voice.id ? (
+                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+                                  </svg>
+                                ) : (
+                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M8 5v14l11-7z"/>
+                                  </svg>
+                                )}
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (confirm(`Delete advanced mix "${voice.name}"?`)) {
+                                    deleteAdvancedMix(voice.id);
+                                  }
+                                }}
+                                className="p-2 rounded-full text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* User Created Voices */}
-                {userCombined.length > 0 && (
+                {userCombined.filter(v => !v.isAdvanced).length > 0 && (
                   <div className="mb-8">
                     <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
                       <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
                       Your Custom Voices
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {userCombined.map(voice => (
+                      {userCombined.filter(v => !v.isAdvanced).map(voice => (
                         <div
                           key={voice.id}
                           className={`group p-4 border-2 rounded-xl cursor-pointer transition-all ${
@@ -931,6 +1080,14 @@ function SettingsModal({ isOpen, onClose, settings, onSave }) {
           box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
       `}</style>
+
+      {/* Advanced Voice Mixer Modal */}
+      <VoiceMixerModal
+        isOpen={showAdvancedMixer}
+        onClose={() => setShowAdvancedMixer(false)}
+        onSaveMix={saveAdvancedMix}
+        availableVoices={availableVoices}
+      />
     </div>
   );
 }
