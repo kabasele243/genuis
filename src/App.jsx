@@ -29,10 +29,6 @@ import PageNotFound from './pages/utility/PageNotFound';
 import Signin from './pages/Signin';
 import Signup from './pages/Signup';
 import ResetPassword from './pages/ResetPassword';
-import Onboarding01 from './pages/Onboarding01';
-import Onboarding02 from './pages/Onboarding02';
-import Onboarding03 from './pages/Onboarding03';
-import Onboarding04 from './pages/Onboarding04';
 import ButtonPage from './pages/component/ButtonPage';
 import FormPage from './pages/component/FormPage';
 import DropdownPage from './pages/component/DropdownPage';
@@ -79,10 +75,6 @@ function App() {
         <Route path="/signin" element={<Signin />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/onboarding-01" element={<Onboarding01 />} />
-        <Route path="/onboarding-02" element={<Onboarding02 />} />
-        <Route path="/onboarding-03" element={<Onboarding03 />} />
-        <Route path="/onboarding-04" element={<Onboarding04 />} />
         <Route path="/component/button" element={<ButtonPage />} />
         <Route path="/component/form" element={<FormPage />} />
         <Route path="/component/dropdown" element={<DropdownPage />} />
